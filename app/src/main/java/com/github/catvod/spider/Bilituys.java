@@ -1,5 +1,6 @@
 package com.github.catvod.spider;
 
+import android.text.TextUtils;
 import com.github.catvod.crawler.Spider;
 import com.github.catvod.net.OkHttp;
 import org.json.JSONArray;
@@ -10,10 +11,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,12 +21,22 @@ import java.util.regex.Pattern;
  */
 public class Bilituys extends Spider {
 
-    private final String siteUrl = "https://www.bilituys.com";
+    private final String siteURL = "https://www.bilituys.com";
 
-    private final String userAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36";
+    private final String userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36";
 
     private Map<String, String> getHeader() {
         Map<String, String> header = new HashMap<>();
+        header.put("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
+        header.put("accept-language", "zh-CN,zh;q=0.9");
+        header.put("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"102\", \"Google Chrome\";v=\"102\"");
+        header.put("sec-ch-ua-mobile", "?0");
+        header.put("sec-ch-ua-platform", "\"macOS\"");
+        header.put("sec-fetch-dest", "document");
+        header.put("sec-fetch-mode", "navigate");
+        header.put("sec-fetch-site", "same-origin");
+        header.put("sec-fetch-user", "?1");
+        header.put("upgrade-insecure-requests", "1");
         header.put("User-Agent", userAgent);
         return header;
     }
@@ -67,32 +75,25 @@ public class Bilituys extends Spider {
      */
     @Override
     public String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend) throws Exception {
-        HashMap<String, String> ext = new HashMap<>();
-        if (extend != null && extend.size() > 0) {
-            ext.putAll(extend);
-        }
-        String area = ext.get("area") == null ? "" : ext.get("area");
-        String year = ext.get("year") == null ? "" : ext.get("year");
-        String by = ext.get("by") == null ? "" : ext.get("by");
-        String classType = ext.get("class") == null ? "" : ext.get("class");
-        String lang = ext.get("lang") == null ? "" : ext.get("lang");
+        String area = getFilterValue("area", extend);
+        String year = getFilterValue("year", extend);
+        String by = getFilterValue("by", extend);
+        String classType = getFilterValue("class", extend);
+        String lang = getFilterValue("lang", extend);
 
-        String cateUrl = siteUrl + String.format("/bilishow/%s-%s-%s-%s-%s----%s---%s.html", tid, area, by, classType, lang, pg, year);
-        // 分类页链接拼接后应该是类似这样的：
-        // cateUrl = "https://www.bilituys.com/bilishow/1-大陆-time-喜剧-国语----2---2020.html";
-        Elements lis = Jsoup.parse(OkHttp.string(cateUrl, getHeader()))
-                .select("[class=stui-vodlist clearfix]")
-                .select("li");
+        String cateURL = siteURL + "/vodshow/" + tid + area + by + classType + lang + year;
+        if (!pg.equals("1")) cateURL += "/page/" + pg;
+        cateURL += ".html";
+        String html = OkHttp.string(cateURL, getHeader());
+        Elements items = Jsoup.parse(html).select("[class=module-items] .module-item");
         JSONArray videos = new JSONArray();
-        for (Element li : lis) {
-            Element item = li.select("[class=stui-vodlist__thumb lazyload]").get(0);
-            String vid = siteUrl + item.attr("href");
-            String name = item.attr("title");
-            String pic = item.attr("data-original");
-            String remark = item.select(".pic-text").select("b").text();
-
+        for (Element item : items) {
+            String vodId = item.select(".module-item-title").attr("href");
+            String name = item.select(".module-item-title").text();
+            String pic = item.select(".module-item-cover img").attr("data-src");
+            String remark = item.select(".module-item-text").text();
             JSONObject vod = new JSONObject()
-                    .put("vod_id", vid)
+                    .put("vod_id", vodId)
                     .put("vod_name", name)
                     .put("vod_pic", pic)
                     .put("vod_remarks", remark);
@@ -104,44 +105,58 @@ public class Bilituys extends Spider {
         return result.toString();
     }
 
+    private String getFilterValue(String key, HashMap<String, String> extend) {
+        String value = extend.getOrDefault(key, "");
+        if (value.equals("")) return value;
+//        return "/" + key + "/" + value;
+        return String.format("/%s/%s", key, value);
+    }
+
     /**
      * 详情页
      */
     @Override
     public String detailContent(List<String> ids) throws Exception {
-        String detailUrl = ids.get(0);
-        String html = OkHttp.string(detailUrl, getHeader());
+        String vodId = ids.get(0);
+        String detailURL = siteURL + vodId;
+        String html = OkHttp.string(detailURL, getHeader());
         Document doc = Jsoup.parse(html);
-        Elements sourceList = doc.select("[class=stui-content__playlist sort-list maxheight clearfix]");
-        Elements sourceHeader = doc.select("h3[class=title]");
-        StringBuilder vodPlayUrl = new StringBuilder(); // 线路/播放源 里面的各集的播放页面链接
-        StringBuilder vodPlayFrom = new StringBuilder();  // 线路 / 播放源标题
+
+        Elements sourceList = doc.select("[class=module-blocklist scroll-box scroll-box-y] .scroll-content");
+        Elements sourceHeader = doc.select("[class=module-tab-item tab-item]");
+        Map<String, String> playMap = new LinkedHashMap<>();
         for (int i = 0; i < sourceList.size(); i++) {
             String playFrom = sourceHeader.get(i).text();
-            vodPlayFrom.append(playFrom).append("$$$");
             Elements aList = sourceList.get(i).select("a");
-            for (int j = 0; j < aList.size(); j++) {
-                String text = aList.get(j).text();
-                String href = siteUrl + aList.get(j).attr("href");
-                vodPlayUrl.append(text).append("$").append(href);
-                boolean notLastEpisode = j < aList.size() - 1;
-                vodPlayUrl.append(notLastEpisode ? "#" : "$$$");
+            List<String> vodItems = new ArrayList<>();
+            for (Element a : aList) {
+                String episodeName = a.text();
+                String episodeURL = a.attr("href");
+                vodItems.add(episodeName + "$" + episodeURL);
+            }
+            if (vodItems.size() > 0) {
+                playMap.put(playFrom, TextUtils.join("#", vodItems));
             }
         }
 
-        String name = doc.select("[class=title wdetail]").text();
-        String pic = doc.select("a[class=pic] > img").attr("data-original");
-        String typeName = getStrByRegex("类型：(.*?)/", html);
-        String year = getStrByRegex("年份：(.*?)</p>", html);
-        String area = getStrByRegex("地区：(.*?)/", html);
-        String remark = getStrByRegex("状态：.*?>(.*?)</span>", html);
-        String actor = getStrByRegex("主演：(.*?)</p>", html);
-        String director = getStrByRegex("导演：(.*?)</p>", html);
-        String description = doc.select(".detail-content").text();
+        String name = doc.select(".page-title").text();
+        String pic = doc.select(".video-cover img").attr("data-src");
+        String typeName = doc.select("div[class=tag-link]").text();
+        Elements tags = doc.select("a[class=tag-link]");
+        String year = "";
+        String area = "";
+        for (int i = 0; i < tags.size(); i++) {
+            if (i == 1) year = tags.get(i).text();
+            if (i == 2) area = tags.get(i).text();
+        }
+        String remark = "";
+        String actor = getStrByRegex("主演：(.*?)</div>", html);
+        String director = getStrByRegex("导演：(.*?)</div>", html);
+        String description = doc.select(".vod_content").text();
 
         // 影片名称、图片等赋值
-        JSONObject vodObj = new JSONObject()
-                .put("vod_id", ids.get(0))
+        JSONObject vod = new JSONObject()
+                .put("vod_id", ids.get(0)) // 必须有
                 .put("vod_name", name)
                 .put("vod_pic", pic)
                 .put("type_name", typeName) // 影片类型
@@ -151,15 +166,15 @@ public class Bilituys extends Spider {
                 .put("vod_actor", actor) // 主演
                 .put("vod_director", director) // 导演
                 .put("vod_content", description); // 简介
-        if (vodPlayUrl.length() > 0) {
-            vodObj.put("vod_play_from", vodPlayFrom.toString());
-            vodObj.put("vod_play_url", vodPlayUrl.toString());
+
+        if (playMap.size() > 0) {
+            vod.put("vod_play_from", TextUtils.join("$$$", playMap.keySet()));
+            vod.put("vod_play_url", TextUtils.join("$$$", playMap.values()));
         }
 
-        JSONArray jsonArray = new JSONArray()
-                .put(vodObj);
-        JSONObject result = new JSONObject()
-                .put("list", jsonArray);
+        JSONArray list = new JSONArray().put(vod);
+        JSONObject result = new JSONObject();
+        result.put("list", list);
         return result.toString();
     }
 
@@ -170,7 +185,6 @@ public class Bilituys extends Spider {
             Matcher matcher = pattern.matcher(htmlStr);
             if (matcher.find()) {
                 return matcher.group(1)
-                        .trim()
                         .replaceAll("</?[^>]+>", "")
                         .replaceAll("&nbsp;", " ")
                         .trim();
@@ -183,23 +197,39 @@ public class Bilituys extends Spider {
 
     /**
      * 搜索
-     *
      * @param key 关键字/词
      */
     @Override
     public String searchContent(String key, boolean quick) throws Exception {
-        String searchUrl = siteUrl + "/bilisch/wd/" + URLEncoder.encode(key) + ".html";
-        String searchResult = OkHttp.string(searchUrl, getHeader());
+        return searchContent(key, quick, "1");
+    }
+
+    /**
+     * 搜索带分页
+     * 备注：最新的影视App支持搜索翻页功能
+     * @param key   关键字/词
+     * @param quick 暂时不用
+     * @param pg    页码
+     */
+    @Override
+    public String searchContent(String key, boolean quick, String pg) throws Exception {
+        // 第一页
+        // https://www.bilituys.com/bilisch.html?wd=我
+
+        // 第二页
+        // https://www.bilituys.com/bilisch/page/2/wd/我.html
+        String searchURL = siteURL + "/bilisch.html?wd=" + URLEncoder.encode(key);
+        if (!pg.equals("1")) searchURL = siteURL + "/bilisch/page/" + pg + "/wd/" + URLEncoder.encode(key) + ".html";
+        String html = OkHttp.string(searchURL, getHeader());
+        Elements items = Jsoup.parse(html).select("[class=module-items] .module-search-item");
         JSONArray videos = new JSONArray();
-        Elements lis = Jsoup.parse(searchResult).select("[class=stui-vodlist clearfix] li");
-        for (Element li : lis) {
-            Elements a = li.select("[class=stui-vodlist__thumb lazyload]");
-            String vid = siteUrl + a.attr("href");
-            String name = a.attr("title");
-            String pic = a.attr("data-original");
-            String remark = a.select(".pic-text").text();
+        for (Element item : items) {
+            String vodId = item.select(".video-info-header > h3 > a").attr("href");
+            String name = item.select(".video-info-header > h3 > a").text();
+            String pic = item.select(".video-cover img").attr("data-src");
+            String remark = item.select(".video-info-header > a[class=video-serial]").text();
             JSONObject vod = new JSONObject()
-                    .put("vod_id", vid)
+                    .put("vod_id", vodId)
                     .put("vod_name", name)
                     .put("vod_pic", pic)
                     .put("vod_remarks", remark);
@@ -212,25 +242,24 @@ public class Bilituys extends Spider {
 
     @Override
     public String playerContent(String flag, String id, List<String> vipFlags) throws Exception {
-        String lastURL = id;
+        String lastURL = siteURL + id;
         int parseFlag = 1;
-        String content = OkHttp.string(id, getHeader());
+        String content = OkHttp.string(lastURL, getHeader());
         Pattern pattern = Pattern.compile("player_aaaa=(.*?)</script>");
         Matcher matcher = pattern.matcher(content);
         if (matcher.find()) {
-            String url = new JSONObject(matcher.group(1).trim())
-                    .optString("url");
+            String url = new JSONObject(matcher.group(1).trim()).optString("url");
             if (url.contains(".m3u8") || url.contains(".mp4")) {
                 lastURL = url;
                 parseFlag = 0;
             }
         }
-        HashMap<String, String> header = new HashMap<>();
+        Map<String, String> header = new HashMap<>();
         header.put("User-Agent", userAgent);
         header.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
         header.put("Accept-encoding", "gzip, deflate, br");
         header.put("Accept-language", "zh-CN,zh;q=0.9");
-        header.put("Referer", siteUrl + "/");
+        header.put("Referer", siteURL + "/");
         header.put("Upgrade-insecure-requests", "1");
 
         JSONObject result = new JSONObject()
