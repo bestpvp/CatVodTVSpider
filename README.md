@@ -17,26 +17,22 @@
 ### 3.编译和构建 jar：
 > 在调试完后，可以将 TVJar_test 项目调试后的 spider 代码拷贝到当前项目 CatVodTVSpider 对应的包下面，然后执行 buildAndGenJar.bat
 就可以得到 jar 包了。
+>
+> 如果你用的操作系统是win7，无法正常生成jar，那么可以参考 [pr2](https://github.com/zhixc/CatVodTVSpider/pull/2)
 
 
 ### 4.配置接口
-> FongMi的影视 配置加速地址1: https://ghproxy.net/https://raw.githubusercontent.com/zhixc/CatVodTVSpider/main/json/FongMi_TV_config.json
+> FongMi的影视APP / TVBox 配置加速地址1: https://ghproxy.net/https://raw.githubusercontent.com/zhixc/CatVodTVSpider/main/json/config.json
 >
 >
-> FongMi的影视 配置加速地址2: https://ghproxy.com/https://raw.githubusercontent.com/zhixc/CatVodTVSpider/main/json/FongMi_TV_config.json
-> 
-> 
-> TVBox配置加速地址1: https://ghproxy.net/https://raw.githubusercontent.com/zhixc/CatVodTVSpider/main/json/tvbox_config.json
->
->
-> TVBox配置加速地址2: https://ghproxy.com/https://raw.githubusercontent.com/zhixc/CatVodTVSpider/main/json/tvbox_config.json
+> FongMi的影视APP / TVBox 配置加速地址2: https://mirror.ghproxy.com//https://raw.githubusercontent.com/zhixc/CatVodTVSpider/main/json/config.json
 
 
 
 ### 5.推荐的软件
 > 强烈推荐使用 FongMi 的影视，支持自动换源，非常强大，作者持续更新维护。其仓库地址：https://github.com/FongMi/TV
 > 
-> 如果需要播放磁力的话，可以使用俊版TVBox、takagen99版TVBox，安装包发布仓库：https://github.com/o0HalfLife0o/TVBoxOSC
+> 俊版TVBox、takagen99版TVBox，安装包发布仓库：https://github.com/o0HalfLife0o/TVBoxOSC
 > 
 > 俊版仓库地址：https://github.com/q215613905/TVBoxOS
 > 
@@ -84,5 +80,5 @@
 ]
 ```
 - m3u 格式的文件，里面一般带有图片，如果在json配置文件里面写了图片链接，那么就以json配置文件的为主。
-- 一些直播源来自：Yoursmile7 的 [TVBox](https://agit.ai/Yoursmile7/TVBox)、youshandefeiyang 的 [live-Url](https://github.com/youshandefeiyang/live-Url) 、Ftindy 的 [IPTV-URL](https://github.com/Ftindy/IPTV-URL)、范明明的 [live](https://github.com/fanmingming/live) 等项目，非常感谢 Yoursmile7、 youshandefeiyang、Ftindy、范明明的分享。
+- 一些直播源来自：Yoursmile7 的 [TVBox](https://agit.ai/Yoursmile7/TVBox)、Ftindy 的 [IPTV-URL](https://github.com/Ftindy/IPTV-URL)、范明明的 [live](https://github.com/fanmingming/live) 等项目，非常感谢 Yoursmile7、Ftindy、范明明的分享。
 

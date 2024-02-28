@@ -57,7 +57,8 @@ public class Yj1211 extends Spider {
         JSONObject aido = new JSONObject(aaid);
         JSONArray aidoa = aido.getJSONArray("data");
         JSONArray extendsAll = new JSONArray();
-        for (int j = 0; j < 13; j++) {
+//        for (int j = 0; j < 13; j++) {
+        for (int j = 0; j < 5; j++) {
             JSONObject newTypeExtend = new JSONObject();
             String typeName = aidoa.getJSONArray(j).getJSONObject(0).getString("typeName");
             newTypeExtend.put("key", "typeName" + j);

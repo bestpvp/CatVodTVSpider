@@ -75,11 +75,17 @@ public class Bilituys extends Spider {
      */
     @Override
     public String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend) throws Exception {
-        String area = getFilterValue("area", extend);
-        String year = getFilterValue("year", extend);
-        String by = getFilterValue("by", extend);
-        String classType = getFilterValue("class", extend);
-        String lang = getFilterValue("lang", extend);
+        // 二级筛选处理 start
+        HashMap<String, String> ext = new HashMap<>();
+        if (extend != null && extend.size() > 0) {
+            ext.putAll(extend);
+        }
+        String area = checkExt("area", ext);
+        String year = checkExt("year", ext);
+        String by = checkExt("by", ext);
+        String classType = checkExt("class", ext);
+        String lang = checkExt("lang", ext);
+        // 二级筛选处理 end
 
         String cateURL = siteURL + "/vodshow/" + tid + area + by + classType + lang + year;
         if (!pg.equals("1")) cateURL += "/page/" + pg;
@@ -105,8 +111,10 @@ public class Bilituys extends Spider {
         return result.toString();
     }
 
-    private String getFilterValue(String key, HashMap<String, String> extend) {
-        String value = extend.getOrDefault(key, "");
+    private String checkExt(String key, HashMap<String, String> ext) {
+//        String value = ext.getOrDefault(key, ""); // 这种写法可能不支持低版本的安卓系统
+//        String value = ext.containsKey(key) ? ext.get(key) : ""; // 这种写法暂时未知
+        String value = ext.get(key) == null ? "" : ext.get(key); // 推荐这种写法，HashMap 的 containsKey() 方法的源码就是这种写法
         if (value.equals("")) return value;
 //        return "/" + key + "/" + value;
         return String.format("/%s/%s", key, value);
@@ -197,6 +205,7 @@ public class Bilituys extends Spider {
 
     /**
      * 搜索
+     *
      * @param key 关键字/词
      */
     @Override
@@ -207,6 +216,7 @@ public class Bilituys extends Spider {
     /**
      * 搜索带分页
      * 备注：最新的影视App支持搜索翻页功能
+     *
      * @param key   关键字/词
      * @param quick 暂时不用
      * @param pg    页码

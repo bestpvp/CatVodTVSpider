@@ -44,4 +44,7 @@ dependencies {
         exclude group: "com.squareup.okhttp3"
     }
     annotationProcessor "com.github.liujingxing.rxhttp:rxhttp-compiler:$rxhttp_version"
+
+    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'com.google.net.cronet:cronet-okhttp:0.1.0'
 }

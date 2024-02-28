@@ -2,13 +2,20 @@ package com.github.catvod.spider;
 
 import android.content.Context;
 import android.os.Environment;
+
 import com.github.catvod.crawler.Spider;
+import com.github.catvod.utils.Utils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
 
 /**
  * 基于原来的 LocalFile.java
@@ -18,8 +25,8 @@ import java.util.*;
  */
 public class LocalFileV2 extends Spider {
 
-    private final String defaultMediaPic = "https://cdn.jsdelivr.net/gh/zhixc/CatVodTVSpider/pic/video.png@User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36";
-    private final String defaultFolderPic = "https://cdn.jsdelivr.net/gh/zhixc/CatVodTVSpider/pic/folder.png@User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36";
+    private final String defaultMediaPic = "https://cdn.jsdelivr.net/gh/zhixc/CatVodTVSpider/pic/video.png@User-Agent=" + Utils.CHROME;
+    private final String defaultFolderPic = "https://cdn.jsdelivr.net/gh/zhixc/CatVodTVSpider/pic/folder.png@User-Agent=" + Utils.CHROME;
 
     private boolean showAllFile = true;
     private final List<String> media = Arrays.asList("mp4", "mkv", "wmv", "flv", "avi", "mp3", "aac", "flac", "m4a", "ape", "ogg", "rmvb", "ts");
@@ -150,7 +157,7 @@ public class LocalFileV2 extends Spider {
         return result.toString();
     }
 
-    private static String getFileExt(String name) {
+    private String getFileExt(String name) {
         try {
             return name.substring(name.lastIndexOf(".") + 1).toLowerCase();
         } catch (Exception e) {
